@@ -13,9 +13,14 @@ void sendToAll(int);
 void sendToOne(int,std::string);
 std::string recString(int);
 int privateSend(std::string,int);
+void processFile(int,int);
+int findUser(std::string);
+void sendFile(int,int,std::string);
+int getFileSize(std::string);
+
 
 // declare what i need to be global 
-char buffer[1025];
+char buffer[7000];
 ClientNode guys[maxClients];
 
 int main(int argc , char *argv[])   
@@ -158,7 +163,7 @@ int main(int argc , char *argv[])
             {   
                 //Check if it was for closing , and also read the  
                 //incoming message  
-                if ((valread = read( sd , buffer, 1024)) == 0)   
+                if ((valread = read( sd , buffer, sizeof(buffer))) == 0)   
                 {   
                     //Somebody disconnected , get his details and print  
                     getpeername(sd , (struct sockaddr*)&address , 
@@ -180,6 +185,7 @@ int main(int argc , char *argv[])
                     std::string message(buffer);
                     message = message.substr(0,valread);
                     std::string test = message.substr(0,1);
+                    std::string testF = message.substr(0,4);
                     // tests to see if : is the first char
                     if(test.compare(":") == 0)
                     {
@@ -197,6 +203,11 @@ int main(int argc , char *argv[])
                             send(guys[i].sockfd,buffer,reply.size(),0);
                             memset(buffer,0,sizeof(buffer));
                         }
+                    }
+                    else if(testF.compare("FILE") == 0)
+                    {
+                        std::cout << "got here" << std::endl;
+                        processFile(i,valread);
                     }
                     else
                     {
@@ -262,6 +273,7 @@ int privateSend(std::string name,int pos)
 void sendToAll(int i)
 {
     int count = 0;
+    //char bufferB[8000];
     for(int j = 0; guys[j].sockfd != 0;j++)
     {
         if(i != j)
@@ -271,6 +283,7 @@ void sendToAll(int i)
                 std::string buff = "(" + guys[i].clientName + "):";
                 std::string extra(buffer);
                 buff += extra;
+
                 memset(buffer,0,sizeof(buffer));
                 strcpy(buffer,buff.c_str());
                 ++count;
@@ -415,4 +428,130 @@ std::string login(std::string name, int pos)
     }
 
     return myName;
+}
+void processFile(int pos,int sizeData)
+{   
+    std::string nameSend;
+    std::string nameFrom = guys[pos].clientName;
+
+    std::string header(buffer);
+    int firstPos = header.find(">");
+    int secondPos = header.find(">",firstPos+1);
+    int plusPos = header.find("+");
+    std::string nameOfFile = header.substr(secondPos+1,(plusPos-secondPos-1));
+    int sec = secondPos - firstPos - 1;
+    nameSend = header.substr(firstPos+1,(sec));
+    std::string sendHead = "(" + nameFrom + "):";
+
+    FILE* theFile;
+    // create a file with the contents of the buffer
+    std::cout << header.size() << std::endl;
+    theFile = fopen("file_in_transmittion.txt", "w+");
+    int i = 0;
+    char c;
+    int fileData = sizeData - (plusPos+1);
+    for(i = 0;i < fileData;i++)
+    {
+     
+	    c = buffer[i+plusPos+1];
+	    fputc(c, theFile);
+            
+    }
+
+    sendHead += header;
+    //memset(buffer,0,sizeof(buffer));
+
+
+    //close the file
+    fclose(theFile);
+
+    
+    std::string response;
+    std::string res = nameFrom + " would like to send you a file, respond yes to accept or no to decline.";
+    int tester = findUser(nameSend);
+    std::cout << tester << std::endl;
+    std::cout << nameSend << std::endl;
+    printf("%s", buffer);
+    if(tester != -1)
+    {
+        sendToOne(tester,res);
+        
+        response = recString(tester);
+        
+    }
+    if(response.compare("yes") == 0)
+    {
+        sendFile(pos,tester,nameOfFile);
+    }
+
+}
+int findUser(std::string search)
+{
+    int found = 0;
+    int foundWhat;
+    for(int i = 0;i < maxClients;i++)
+    {
+        if(guys[i].clientName.compare(search) == 0)
+        {
+            found = 1;
+            foundWhat = i;
+        }
+    }
+    if(found == 1)
+    {
+        return foundWhat;
+    }
+    else
+    {
+        return -1;
+    }   
+}
+void sendFile(int from,int to,std::string name)
+{   
+  std::string head = "(" + guys[from].clientName + "):FILE>";  
+  std::string newHeader = head + name + "+";
+
+  memset(buffer,0,sizeof(buffer));
+  //copy the header into the buffer
+  strcpy(buffer,newHeader.c_str());
+  //copy the rest of the file into the buffer
+   int fileSize = getFileSize(name);   
+  //std::ifstream fileName(myFileName);
+  // reads a file whos name is specified by the header
+  FILE* fileName;
+  fileName = fopen("file_in_transmittion.txt", "rb");
+  if(fileName != NULL)
+  {
+     
+	  int i = 0;
+	  int c;
+    
+    int position = newHeader.find("+");
+	  for(i = 0;i < fileSize;i++)
+	  {
+	    c = getc(fileName);
+	    buffer[i+position+1] = c;//buffer[i + (sizeof(newHeader)-1)] = c;//EDIT 
+	  }
+
+    //fclose(fileName);
+    fclose(fileName);
+    int combo = fileSize + newHeader.size();
+    send(guys[to].sockfd,buffer,combo,0);
+  }
+
+}
+int getFileSize(std::string fileName)
+{
+    std::ifstream file(fileName.c_str(), std::ifstream::in | std::ifstream::binary);
+
+    if(!file.is_open())
+    {
+        return -1;
+    }
+
+    file.seekg(0, std::ios::end);
+    int fileSize = file.tellg();
+    file.close();
+
+    return fileSize;
 }

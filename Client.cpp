@@ -11,12 +11,15 @@
 
 void* sendIt(void*);
 void* receiveIt(void*);
-//void prompt();
+void dealWithFile(int);
+void sendFile(std::string);
+int getFileSize(std::string);
 
 //global variable exit flag
 int exitFlag = 0;
 int sock = 0;
-char buffer[256] = {0};
+char buffer[8000] = {0};
+int flag = 0;
 
 int main(int argc, char *argv[]) 
 {
@@ -110,6 +113,10 @@ void* sendIt(void* arg)
       exitFlag = 1;
       break;
     }
+    else if(message.compare(0,5,"FILE>") == 0)
+    {
+      sendFile(message);
+    }
     else if(message.compare("\n") != 0)
     {
       
@@ -135,19 +142,29 @@ void* sendIt(void* arg)
 }
 void* receiveIt(void* arg)
 {
-  char message[LENGTH] = {0};
+  //char message[LENGTH] = {0};
 
   while(1)
   {
-    int rec = recv(sock,message,LENGTH,0);
-    std::string mess(message);
-    mess = mess.substr(0,rec); 
-   
+    int rec = recv(sock,buffer,sizeof(buffer),0);
+    std::string mess(buffer);
+    mess = mess.substr(0,rec);
+    std::string fileFlag;
+    int first = mess.find(':');
+    int second = mess.find('>');
+    fileFlag = mess.substr(first+1,5);
     if(rec > 0)
     {
-     std::cout << std::endl << mess << std::endl;//printf("%s",message);
-     ///prompt();
-    }
+      if(fileFlag.compare("FILE>") == 0)
+      {
+        dealWithFile(rec);
+      }
+      else
+      {
+        std::cout << std::endl << mess << std::endl;//printf("%s",message);
+      }
+    memset(buffer,0,sizeof(buffer)); 
+    } 
     else if(rec == 0)
     {
       break;
@@ -155,9 +172,114 @@ void* receiveIt(void* arg)
   }
   pthread_exit(0);
 }
-//void prompt()
-//{
+void dealWithFile(int theSize)
+{
+    // loads the data into the buffer and cuts out the header
+    std::string fileData(buffer);
+    int place = fileData.find(":");
+    std::string fromWho = fileData.substr(0,place+1);
 
-//  printf("$$$");
-//  fflush(stdin);
-//}
+    int placeB = fileData.find(">");
+    std::string head = fileData.substr(place+1,5);
+    //std::string mess(fileData);
+    //std::cout << mess << std::endl;
+    //std::cout << theSize << std::endl;
+    int plusPosition = fileData.find("+");
+    std::string fileName((fileData.begin()+placeB+1),(fileData.begin()+plusPosition));//std::string fileName = fileData.substr(placeB+1, spacePosition);
+    //memset(buffer,0,sizeof(buffer));
+    //fileData = fileData.substr(fromWho.size()+head.size()+fileName.size()+1);
+    //strcpy(buffer,fileData.c_str());
+    //std::cout << fromWho << std::endl; 
+    //std::cout << placeB << std::endl;
+    //std::cout << plusPosition << std::endl;
+    //std::cout << head << std::endl;
+    //std::cout << fileName << std::endl;
+    // write the file
+    printf("File: %s received\n", fileName.c_str());
+    FILE* theFile;
+    // create a file with the contents of the buffer
+    theFile = fopen(fileName.c_str(), "w+");
+    int i = 0;
+    char c;
+
+    for(i = plusPosition+1;i < (theSize-plusPosition+1);i++)
+    {
+     
+	    c = buffer[i];
+	    fputc(c, theFile);
+            
+    }
+    //close the file
+    fclose(theFile);
+}
+void sendFile(std::string header)
+{
+  //find the filename
+  //memset(buffer,0,sizeof(buffer));
+  int posA = header.find(">");
+  int pos = header.find(">",posA+1);
+  std::string myFileName = header.substr(pos+1);
+  std::string newHeader = header + "+";
+  memset(buffer,0,sizeof(buffer));
+  //copy the header into the buffer
+  strcpy(buffer,newHeader.c_str());
+  //copy the rest of the file into the buffer
+   int fileSize = getFileSize(myFileName);   
+  //std::ifstream fileName(myFileName);
+  // reads a file whos name is specified by the header
+  FILE* fileName;
+  fileName = fopen(myFileName.c_str(), "rb");
+  std::cout << myFileName.c_str() << std::endl;
+  if(fileName != NULL)
+  {
+    //find the file size to send.
+    //fseek(fileName, 0L, SEEK_END);
+    //int fileSize = (int)ftell(fileName);
+	  //rewind(fileName);
+    //int fileSize = getFileSize(myFileName);    
+	  int i = 0;
+	  int c;
+    /*std::streambuf * pbuf = fileName.rdbuf();
+    do {
+      char ch = pbuf->sgetc();
+      buffer[i + (sizeof(newHeader)-1)] = ch;
+    } while ( pbuf->snextc() != EOF );
+    *///istr.close();       
+    // send the file
+    int position = newHeader.find("+");
+	  for(i = 0;i < fileSize;i++)
+	  {
+	    c = getc(fileName);
+	    buffer[i+position+1] = c;//buffer[i + (sizeof(newHeader)-1)] = c;//EDIT 
+	  }
+
+    //fclose(fileName);
+    fclose(fileName);
+    int combo = fileSize + newHeader.size();
+    int sentSize = send(sock,buffer,combo,0);
+    std::cout << "file sent->" << sentSize << std::endl;
+    std::cout << fileSize << "+" << newHeader.size() << std::endl;
+  }
+  else
+  {
+    //lets the user know he does not have such a file and that is all
+    std::cout << "you dont have a file by that name" << std::endl;
+    std::cout << myFileName << std::endl;
+  }
+      
+}
+int getFileSize(std::string fileName)
+{
+    std::ifstream file(fileName.c_str(), std::ifstream::in | std::ifstream::binary);
+
+    if(!file.is_open())
+    {
+        return -1;
+    }
+
+    file.seekg(0, std::ios::end);
+    int fileSize = file.tellg();
+    file.close();
+
+    return fileSize;
+}

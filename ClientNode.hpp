@@ -15,6 +15,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define PORT 60019 
 #define LENGTH 101
