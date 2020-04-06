@@ -3,7 +3,7 @@
  *      Author: Stephen Lamalie
  *      Course: COP4635
  *      Proj  : Project 02
- */
+ */ 
 #include "ClientNode.hpp"
 
 std::string login(std::string,int);
@@ -52,7 +52,7 @@ int main(int argc , char *argv[])
     address.sin_family = AF_INET;   
     address.sin_addr.s_addr = INADDR_ANY;   
     address.sin_port = htons( PORT );   
-         
+      
     //bind the socket to localhost port 60019 
     if (bind(masterSocket, (struct sockaddr *)&address, sizeof(address))<0)   
     {   
@@ -70,8 +70,8 @@ int main(int argc , char *argv[])
          
     //accept the incoming connection  
     addrlen = sizeof(address);   
-    printf("Waiting for connections...\n");   
-         
+    printf("Waiting for connections...\n");  
+   
     for(;;)   
     {   
         //clear the socket set  
@@ -135,15 +135,13 @@ int main(int argc , char *argv[])
                     
                     memset(buffer,0,sizeof(buffer));
                     std::cout << "adding " << guys[i].clientName << " to list of sockets as " << i << std::endl;
-                    
-                    ////sendToOne(i,"type the word recievedThePayLoad");
-                    ////std::string rec = "recievedthepayload";
-                    ////std::string myRec = recString(i);
-                    ////std::cout << myRec.size() << "->" << strcmp(myRec.c_str(),"recievedthepayload") << std::endl;                    
+                                     
                     std::string cltName = guys[i].clientName;
                     guys[i].clientName = login(cltName, i);
                     
+                    // send a greetign when a person sucessfully enter the login process
                     sendToOne(i,"Welcome to stephen Lamalie project chatroom!");
+                    // send a message to everyone that person X has entered the chat
                     std::string message = " has joined the chat.";
                     strcpy(buffer,message.c_str());
                     sendToAll(i);
@@ -206,7 +204,7 @@ int main(int argc , char *argv[])
                     }
                     else if(testF.compare("FILE") == 0)
                     {
-                        std::cout << "got here" << std::endl;
+                        //std::cout << "got here" << std::endl;
                         processFile(i,valread);
                     }
                     else
@@ -240,7 +238,6 @@ std::string recString(int i)
     int theLength = recv(guys[i].sockfd,buffer,sizeof(buffer),0);
     std::string response(buffer);
     response = response.substr(0,theLength);
-    //response = response + '\0';
     memset(buffer,0,sizeof(buffer));
 
     return response;
@@ -273,7 +270,6 @@ int privateSend(std::string name,int pos)
 void sendToAll(int i)
 {
     int count = 0;
-    //char bufferB[8000];
     for(int j = 0; guys[j].sockfd != 0;j++)
     {
         if(i != j)
@@ -300,10 +296,8 @@ int enterPassword(std::string password,int pos)
     myPassword = recString(pos);
     while(strcmp(password.c_str(),myPassword.c_str()) != 0)
     {
-        //std::cout << password << std::endl;
         sendToOne(pos,"Im sorry that password is incorrect, please try again, enter \"exit\" to go back");
         myPassword = recString(pos);
-        //std::cout << myPassword << std::endl;
         if(strcmp(password.c_str(),myPassword.c_str()) == 0)
         {
             return 1;
@@ -403,10 +397,7 @@ std::string login(std::string name, int pos)
                 while((strcmp(answer.c_str(),"register") != 0) && (strcmp(answer.c_str(),"try") != 0))
                 {
                     sendToOne(pos,"unable to find your username, enter \"register\" to register or \"try\" to try another username");
-                    //std::cout << myName<< std::endl;
-                    //std::cout << userid << std::endl;
                     answer = recString(pos);
-                    //std::cout << answer << std::endl;
                     
                     if(strcmp(answer.c_str(),"register") == 0)
                     {   
@@ -445,7 +436,7 @@ void processFile(int pos,int sizeData)
 
     FILE* theFile;
     // create a file with the contents of the buffer
-    std::cout << header.size() << std::endl;
+    //std::cout << header.size() << std::endl;
     theFile = fopen("file_in_transmittion.txt", "w+");
     int i = 0;
     char c;
@@ -459,8 +450,6 @@ void processFile(int pos,int sizeData)
     }
 
     sendHead += header;
-    //memset(buffer,0,sizeof(buffer));
-
 
     //close the file
     fclose(theFile);
@@ -469,9 +458,9 @@ void processFile(int pos,int sizeData)
     std::string response;
     std::string res = nameFrom + " would like to send you a file, respond yes to accept or no to decline.";
     int tester = findUser(nameSend);
-    std::cout << tester << std::endl;
-    std::cout << nameSend << std::endl;
-    printf("%s", buffer);
+    //std::cout << tester << std::endl;
+    //std::cout << nameSend << std::endl;
+
     if(tester != -1)
     {
         sendToOne(tester,res);
@@ -491,6 +480,7 @@ int findUser(std::string search)
     int foundWhat;
     for(int i = 0;i < maxClients;i++)
     {
+        //std::cout << search << "+" << guys[i].clientName  << std::endl;
         if(guys[i].clientName.compare(search) == 0)
         {
             found = 1;
@@ -516,7 +506,6 @@ void sendFile(int from,int to,std::string name)
   strcpy(buffer,newHeader.c_str());
   //copy the rest of the file into the buffer
    int fileSize = getFileSize(name);   
-  //std::ifstream fileName(myFileName);
   // reads a file whos name is specified by the header
   FILE* fileName;
   fileName = fopen("file_in_transmittion.txt", "rb");
@@ -530,10 +519,10 @@ void sendFile(int from,int to,std::string name)
 	  for(i = 0;i < fileSize;i++)
 	  {
 	    c = getc(fileName);
-	    buffer[i+position+1] = c;//buffer[i + (sizeof(newHeader)-1)] = c;//EDIT 
+	    buffer[i+position+1] = c;
 	  }
 
-    //fclose(fileName);
+    
     fclose(fileName);
     int combo = fileSize + newHeader.size();
     send(guys[to].sockfd,buffer,combo,0);

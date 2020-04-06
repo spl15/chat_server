@@ -1,0 +1,30 @@
+﻿Stephen Lamalie
+COP4635
+project 02
+
+
+	This program was built solely by Stephen Lamalie. This program aims to show the workings of socket programming and the client/server paradigm.
+	For the client side of the program the main part of the program creates two threads. On thread will always block with the rec function. the other thread will always be asking for input so anything can be read or written at one time. The main function will wait for a flag change inside a while loop and will close both threads and exit when the "quit" command is entered. 
+	For the server side of the program, its not much different than a basic server. The server creates a master set of file descriptors and using the select statment moniters activity without the need for multithreading.The server then just wait for traffic and flags on a few key words to send a file or private message. Other than that the server will send anything entered to all logged in parties with your name stamp on it stamped by the server(or stated server such as the login process).
+******************************************************************************************************************************
+	This folder comes with 10 files(not including this file):
+
+		* Server.cpp –> the server source code
+		* Client.cpp –> the client source code
+		* 1 screen grab video -to show the program working on my machine, the program has also been tested on UWF SSH.
+		* Makefile- makes use of make to create the executables and make clean to clean them up
+		* ClientNode.hpp –> a simple client node that ties a name to a socket file descriptor
+		* ClientNode.cpp -> the basic implementation of the ClientNode that sets fiel des to 0
+		* test.txt –> a simple test txt file
+		* passwords.txt -> a file to store the passwords. It wll be looked up every time someone tries to login and written to every time someone tries to register.  
+		* file_in_transmittion.txt –> an image file that gets stored on the srever as an inbetween when sending a file to another client.
+		* new_file.txt –> the new file that is produced when test.txt is requested from the server while running the client.
+******************************************************************************************************************************
+	To run the program, one needs to execute the "make" command on the command line containing the makefile. This will create two executables named client and server. First one needs to run the server program by typing ./server. The server will tell you(print to stdout) when it is up and running. Now you need to start the client program by typing ./client in the command line along with the ip address of the server.It is a good idea to just use 127.0.0.1 for testing(the loop-back ip address to your own machine). The client will then ask for a name. You will then need to use the password you have stored in the password file or register(add name and password to the file).Then when multiple clients login by running the "./client 127.0.0.1" commandthey can communicate with each other by simply typing.
+
+***** to message all: just write your message in the console and enter.
+
+***** to private message: enter the name of the person in : before the messase. For example ":steve: hey steve" would send a private message "hey steve" to steve
+
+***** to send a file: enter the command FILE in all capitals plus the > command the persons name plus the > character again plus the file name. for example "FILE>steve>example.txt" would send steve the example.txt file. If he accepts it of course.
+

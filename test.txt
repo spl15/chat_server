@@ -1,1 +1,3 @@
-This si a test of the e
+this is a file made by Stephen Lamalie for class COP 4635 to demonstrate
+the workings of http, html,tcp, and sockets.
+
